@@ -18,7 +18,7 @@
 # ## Consumption, Expectations and Social Network
 #
 #
-# - This notebook produces the quantitative model results of the paper _Learning from Friends in a Pandemic_ by Christos Makridis and Tao Wang. It builds on QuantEcon's lecture notes on the income flucuation problem. 
+# - This notebook produces the quantitative model results of the paper _Learning from Friends in a Pandemic_ by Christos Makridis and Tao Wang. It builds on QuantEcon's lecture notes on the income fluctuation problem.
 #
 #   - First, it solves a two-sector consumption model with uninsured idiosyncratic permanent/transitory income risks
 #        - simulate the histories to match the pre-pandemic consumption inequality across U.S. counties
@@ -30,15 +30,14 @@
 #    
 #        - it generates impulse responses on 
 #          - different degree of social communication
-#          - different degree of responsivenss to local news
+#          - different degree of responsiveness to local news
 #          - with different network structure 
 #          - when nodes of different social influence is hit by the same sized shock
 #          - different parameters of EOS
 
 import numpy as np
 import pandas as pd
-from quantecon.optimize import brent_max, brentq
-from interpolation import interp, mlinterp
+from interpolation import interp
 from scipy import interpolate
 from numba import njit, float64
 from numba.experimental import jitclass
@@ -337,7 +336,7 @@ def policyfunc(ifp,
 #  - given the optimal total consumption and preference shock, solve the allocation problem 
 
 # + {"code_folding": [0]}
-## intialize with shock volatility parameters 
+## initialize with shock volatility parameters
 
 a_p = np.sqrt(0.01*4/11)  ## annual estimates to quarterly
 a_y = np.sqrt(0.01*4) ## annual estimates to quarterly 
@@ -414,7 +413,7 @@ ax[2].set_ylabel('infection')
 
 # ## Simulate the pre-pandemic history 
 
-# + {"code_folding": [1, 47, 97]}
+# + {"code_folding": [1, 47]}
 #@njit
 def simulate_time_series(ifp, σ, z_idx_seq, p_income,T=400):
     """
@@ -514,7 +513,6 @@ def simulate_time_series_new(ifp, σ, z_seq, p_income, T=400):
 #@njit
 def simulate_distribution(ifp, 
                           a_star, 
-                          p_vec, 
                           σ_star,
                           z_mat, 
                           p_income_mat,
@@ -527,7 +525,7 @@ def simulate_distribution(ifp,
     
     
     z_mat = z_mat[0:N,0:T]
-    ## z_mat is a N_sim x T sized matrix that takes the simulated Markov states 
+    ## z_mat is an N_sim x T sized matrix that takes the simulated Markov states
     a_mat = np.empty((N,T))
     c_mat = np.empty((N,T))
     c1_mat = np.empty((N,T))
@@ -550,7 +548,7 @@ def simulate_distribution(ifp,
         σ = policyfunc(ifp,
                        a_star,
                        σ_star,
-                       discrete = False) ## interpolate for continous z value 
+                       discrete = False) ## interpolate for continuous z value
         for i in range (N):
             a_mat[i,:],c_mat[i,:],c1_mat[i,:], c2_mat[i,:] = simulate_time_series_new(ifp,
                                                                                       σ,
@@ -584,7 +582,7 @@ T = 200        ## simulated history of time period 50 years or 200 quarters
 z_idx_mat = mc.simulate(T*N, random_state=13274).reshape((N,T))
 
 
-# + {"code_folding": [0, 3, 15]}
+# + {"code_folding": [3, 15]}
 ## simulate a permanent income distributions 
 
 @njit
@@ -625,13 +623,12 @@ for n in range(N):
 
 ifp.a_s = 0.43
 
-# + {"code_folding": [3]}
+# + {"code_folding": [0]}
 ## Simulate the distribution of consumption/asset (no social network learning)
 
 p_vec = (1,1) 
 a_dist,c_dist,c1_dist,c2_dist = simulate_distribution(ifp,
                                                       a_bf_star,
-                                                      p_vec,
                                                       σ_bf_star,
                                                       z_idx_mat,
                                                       p_income_mat,
@@ -722,7 +719,7 @@ axs[0].set_title(r'$c$',fontsize=fontsize)
 #plt.xlim([0,1])
 #plt.ylim([0,1])
 
-## conctact consumption 
+## contact consumption
 
 axs[1].plot(fc1_vals, 
             lc1_vals, 
@@ -853,7 +850,7 @@ ax[2].set_ylabel('infection')
 
 # -
 
-# ## Impulse reponse to an infection shock 
+# ## Impulse response to an infection shock
 
 # + {"code_folding": [4]}
 #####################
@@ -870,7 +867,7 @@ def UpdateNextPeriod(now,
 
 # + {"code_folding": [7]}
 #############################
-## continous z state  #
+## continuous z state  #
 ############################
 
 ## impulse response function plots the consumption 
@@ -887,13 +884,12 @@ def irf_(ifp,
     
     ## parameters 
     R = ifp.R
-    z_val = ifp.z_val
     eps = ifp.eps
 
     ## simulate impulse responses 
     N = len(s_init)
         
-    ## aseet initial
+    ## asset initial
     a_irf = np.empty((N,period))
     a_SS = np.empty((N,period))
     
@@ -908,7 +904,6 @@ def irf_(ifp,
         o_irf[n,:] = o_irf_burn[n_burn:]  ## burn the first 100 simulated observations  
     
     ## psi (aggregate) states
-    n_burn = 10
     #psi_irf_burn = RWSimulate(period+n_burn,
     #                          sigma = ifp.a_psi,     ##### need to add a_psi to ifp
     #                          init = 0.00)
@@ -920,7 +915,7 @@ def irf_(ifp,
     z_SS = np.tile(z_init,(period,1)).T    
     z_irf = np.copy(z_SS)
     
-    cutoff_idx = np.int(N*fraction) ## the fracton of the agents shocked, all by default
+    cutoff_idx = np.int(N*fraction) ## the fraction of the agents shocked, all by default
     z_irf[0:cutoff_idx,0]= z_irf[0:cutoff_idx,0]+z_jump   ## all agents increase by z_jump at time t=1
     
     for t in range(period-1):
@@ -970,7 +965,7 @@ def irf_(ifp,
                                          eps = eps,
                                          S=S) 
     
-    ## fill the rest of the histories  
+    ## fill the rest with the histories  
     for n in range(N):
         Γs = o_irf[n,1:]/o_irf[n,:-1] 
         for t in range(period-1):
@@ -1045,7 +1040,7 @@ z_irf,psi_b_irf,a_irf, c_irf, c1_irf,c2_irf,z_SS,psi_b_SS,a_SS, c_SS, c1_SS,c2_S
                                                                                       period = 20)
 
 # + {"code_folding": [0]}
-## plot impulses reponses
+## plot impulses responses
 
 fig, axs = plt.subplots(2,3, 
                         figsize=(13, 8), 
@@ -1101,7 +1096,7 @@ def SimulateHistories(N,
                       T,
                       σ_eta,
                       σ_theta,
-                      σ_init_xi,   ## initial idiosynratic state variance
+                      σ_init_xi,   ## initial idiosyncratic state variance
                       initials_psi): ## initial aggregate state  
     xi_init = np.random.randn(N)*σ_init_xi
     theta_draws = np.random.randn(T)*σ_theta
@@ -1163,7 +1158,7 @@ def discrete2continuous(z_idx_mat,
     return z_mat
 
 # + {"code_folding": [0]}
-## simulated histories and belief histories belef histories 
+## simulated histories and belief histories 
 
 
 ## parameters 
@@ -1192,20 +1187,19 @@ W_sim = W
 k_mat_sim = 0.30*np.ones((N,N))
 λ_sim = 0.50
 
-# + {"code_folding": [3]}
+# + {"code_folding": [0]}
 psi_belief = UpdateBeliefDistFromVal(z_mat,
                                      W_sim,      ## listening matrix  N x N 
                                      k_mat_sim,  ## 11-information gains matrix N x T 
                                      λ_sim)
 
-# + {"code_folding": [0]}
+# + {"code_folding": [4]}
 ## with social network learning 
 
 zpsi_belief = z_mat + psi_belief
 
 pa_dist,pc_dist,pc1_dist,pc2_dist = simulate_distribution(ifp, 
                                                           a_star, 
-                                                          p_vec, 
                                                           σ_star,
                                                           zpsi_belief,
                                                           p_income_mat,
@@ -1310,7 +1304,7 @@ def irf_b(ifp,
     cut_lb,cut_ub = np.int(N*lb),np.int(N*ub),
     shocked_idx = rank_idx[cut_lb:cut_ub-1]  ### the index that to be shocked 
         
-    ## aseet initial
+    ## asset initial
     a_irf = np.empty((N,period))
     a_SS = np.empty((N,period))
     
@@ -1327,7 +1321,6 @@ def irf_b(ifp,
     
     period_burn = period+1
     ## psi (aggregate) states
-    n_burn = 10
     psi_irf = np.zeros(period_burn)
     psi_SS = np.zeros(period_burn)
     
@@ -1351,7 +1344,7 @@ def irf_b(ifp,
                                             1,
                                             psi_SS[t+2],
                                             0) 
-    z_SS = z_SS_burn[:,1:]  ## the shock happens at t=1 for burn matrix but we want to plot it at t=0
+    z_SS = z_SS_burn[:,1:]  ## the shock happens at t=1 for burn matrix, but we want to plot it at t=0
     z_irf = z_irf_burn[:,1:] ## same as above 
        
         
@@ -1363,7 +1356,7 @@ def irf_b(ifp,
                                         W,
                                         κ_mat,
                                         λ)
-    psi_b_irf = psi_b_irf_burn[:,1:] ## drop the first period because it does not updated based on surprises
+    psi_b_irf = psi_b_irf_burn[:,1:] ## drop the first period because it does not update based on surprises
     
     psi_b_SS_burn = UpdateBeliefDistFromVal(z_SS_burn,
                                            W,
@@ -1409,7 +1402,7 @@ def irf_b(ifp,
                                          eps = eps,
                                          S = S)
     
-    ## fill the rest of the histories  
+    ## fill the rest with the histories
     for n in range(N):
         Γs = o_irf[n,1:]/o_irf[n,:-1] 
         for t in range(period-1):
@@ -1484,7 +1477,7 @@ z_irf,psi_b_irf,a_irf, c_irf, c1_irf,c2_irf,z_SS,psi_b_SS,a_SS, c_SS, c1_SS,c2_S
                                                                                     κ = k_ss)
 
 # + {"code_folding": [0]}
-## plot impulses reponses under complete information 
+## plot impulses responses under complete information
 
 fig, axs = plt.subplots(2,3, 
                         figsize=(13, 8), 
@@ -1538,7 +1531,7 @@ z_irf0,psi_b_irf0,a_irf0, c_irf0, c1_irf0,c2_irf0,z_SS0,psi_b_SS0,a_SS0, c_SS0, 
                                                                                                   κ = 0.3)
 
 # + {"code_folding": [0, 2, 19]}
-## plot impulses reponses
+## plot impulses responses
 
 fig, axs = plt.subplots(2,
                         3, 
@@ -1633,7 +1626,7 @@ for i,λ_this in enumerate(λ_s):
     c2_SS_list.append(c2_SS)
 
 # + {"code_folding": [2, 19]}
-## plot impulses reponses
+## plot impulses responses
 
 fig, axs = plt.subplots(2,3, 
                         figsize=(12, 8), 
@@ -1715,7 +1708,7 @@ for i,κ_this in enumerate(κ_s):
     c2_SS_list.append(c2_SS)
 
 # + {"code_folding": [2, 19]}
-## plot impulse reponses
+## plot impulse responses
 
 fig, axs = plt.subplots(2,3, 
                         figsize=(12, 8), 
@@ -1757,7 +1750,7 @@ plt.savefig('../graph/model/irf_private.jpg')
 
 # ### IRF depending on where the shocks hit 
 
-# + {"code_folding": [2]}
+# + {"code_folding": [0, 2, 8]}
 wheres = [(0,0.33),
          (0.33,0.66),
         (0.66,0.99)
@@ -1794,7 +1787,7 @@ for i,where in enumerate(wheres):
     c2_SS_list.append(c2_SS)
 
 # + {"code_folding": [0, 19]}
-## plot impulses reponses
+## plot impulses responses
 
 labels = ['top','middle','bottom']
 
@@ -1837,7 +1830,7 @@ plt.savefig('../graph/model/irf_where.jpg')
 
 # ### IRF depending on the EOS
 
-# + {"code_folding": []}
+# + {"code_folding": [6]}
 eps_vals = np.array([0.75,0.98,1.5])
 
 z_irf_list, psi_b_irf_list, a_irf_list, c_irf_list, c1_irf_list,c2_irf_list = [],[],[],[],[],[]
@@ -1872,8 +1865,8 @@ for i,eps in enumerate(eps_vals):
     c2_SS_list.append(c2_SS)
 
 
-# + {"code_folding": [19]}
-## plot impulses reponses
+# + {"code_folding": [0, 19]}
+## plot impulses responses
 
 
 fig, axs = plt.subplots(2,3, 
@@ -1912,7 +1905,7 @@ plt.savefig('../graph/model/irf_eos.jpg')
 
 # ### IRF of different social network structure 
 
-# + {"code_folding": [12]}
+# + {"code_folding": [0, 12]}
 ## Identity matrix 
 
 Identity = np.eye(N)  ## no social network is when the weight matrix takes an identity matrix
@@ -1958,8 +1951,8 @@ for i,wt_mat in enumerate(W_list):
     c1_SS_list.append(c1_SS)
     c2_SS_list.append(c2_SS)
 
-# + {"code_folding": [19]}
-## plot impulses reponses
+# + {"code_folding": [0, 19]}
+## plot impulses responses
 
 
 fig, axs = plt.subplots(2,3, 
@@ -2004,7 +1997,7 @@ plt.savefig('../graph/model/irf_network.jpg')
 # | $k=\kappa^*$ dynamically adjusted | rational/heedless      | rational/communicative      | rational/credulous      |   |
 # | $k=0$                              | rigid/heedless         | rigid/communicative         | rigid/credulous         |   |
 
-# + {"code_folding": [0]}
+# + {"code_folding": [0, 13]}
 κ_λ_s = [#[1.1,0.0],
          #[1.1,1.0],
          [1.0,0.0],
@@ -2046,7 +2039,7 @@ for i,κ_λ_this in enumerate(κ_λ_s):
     c1_SS_list.append(c1_SS)
     c2_SS_list.append(c2_SS)
 
-# +
+# + {"code_folding": [0]}
 ## plot impulses reponses
 
 fig, axs = plt.subplots(2,3, 
