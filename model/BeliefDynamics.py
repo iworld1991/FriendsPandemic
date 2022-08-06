@@ -14,14 +14,14 @@
 #     name: python3
 # ---
 
-# # Social Network and Belief Distributions
+# # Social Networks and Belief Distributions
 #
-# - this notebook prepares the toolkits that simulate distributions of the beliefs based on an exogenously given social network.
+# - this notebook undertakes various comparative statistics analysis for the social-network-based learning in _Learning from Friends in a Pandemic_ by Christos Makridis and Tao Wang. These results are not included in the paper draft.
 # - agents partially update from private signals and partially adopt the naive learning, in which the posterior beliefs of each one is a weighted average of beliefs of connected nodes in the previous period with the weights being proportional to its connectedness with other nodes.
 #
 #
 
-# ## Learning from social network 
+# ## Learning from the social network 
 #
 #
 # ### Social network and listening matrix 
@@ -76,7 +76,7 @@
 #
 # - we primarily focus on two distributions of the influence matrix. 
 #    - the distribution of the influence weights, i.e. that of $w_{i,j}$ 
-#    - the distribution of outdegree, i.e., $d_j$. 
+#    - the distribution of degree, i.e., $d_j$. 
 #    
 
 import numpy as np
@@ -120,7 +120,8 @@ fig,ax = plt.subplots(figsize =(8,5))
 a = ax.hist(np.log(sci['normSCI_all']),
             bins = 100,
             edgecolor = 'black',
-            density = True)
+            density = True,
+           label='2019')
 
 
 ## take zero out
@@ -130,8 +131,10 @@ sci16_n0 = sci16_n0[sci16_n0!=0]
 b = ax.hist(np.log(sci16_n0),
             bins = 100,
             edgecolor = 'black',
-            density = True)
+            density = True,
+           label='2016')
 
+plt.legend(loc=1)
 fig.savefig('../graph/model/w_hist_compare.jpg')
 
 # + code_folding=[]
@@ -194,18 +197,8 @@ fig.savefig('../graph/model/degree_hist_compare.jpg')
 
 # ## who are those cities ?
 
-degree16.index
-
-np.array(degree16).argsort()[0:10]
-
+# the 10 most ``influential'' counties
 np.flip(np.array(degree).argsort())[0:10]
-
-# +
-## look up some particular counties 
-
-for i in range(len(degree16)):
-    if degree16.index[i]==2671:
-        print(degree16.iloc[i])
 
 # +
 ## compute some summary statics
@@ -249,24 +242,7 @@ W16 = np.array(wt_dt16)
 np.save('SCIWeight', W) ## save the matrix for other use
 np.save('SCIWeight16', W16) ## save the matrix for other use
 
-# +
-## summary statistics of the weight 
-
-ws_av = np.mean(W)
-ws_sd_nm = np.sqrt(np.var(W.flatten()))/ws_av
-
-
-ws_av16 = np.mean(W16)
-ws_sd_nm16 = np.sqrt(np.var(W16.flatten()))/ws_av16
-
-print('average weight is '+ str(round(ws_av,5)))
-print('normalized standard deviation of the weight is '+ str(round(ws_sd_nm,3)))
-
-
-print('average weight in 2016 is '+ str(round(ws_av16,5)))
-print('normalized standard deviation of the weight in 2016 is '+ str(round(ws_sd_nm16,3)))
-
-# + code_folding=[]
+# + code_folding=[0]
 ## plot the listening matrix 
 
 fig,ax = plt.subplots(figsize =(10,8))
@@ -281,7 +257,7 @@ fig.savefig(('../graph/model/heatmap.jpg'))
 ## plot the listening matrix 2016
 
 fig,ax = plt.subplots(figsize =(10,8))
-ax = sns.heatmap(np.log(W16+0.000001),
+ax = sns.heatmap(np.log(W16+1e-6),
                  xticklabels=False, 
                  yticklabels=False,
                 )
@@ -296,16 +272,14 @@ print('row sum',W.sum(axis=1))
 print('column sum',W.sum(axis=0)) 
 # -
 
-# ### from listening (direct influence) matrix to steady state belief distribution 
-#
+# ### from listening matrix (direct influence) to the influence matrix (cumulative influence) 
+# - the latter is essentially the eigenvector of the former 
 #
 
 # +
 ## compute the eigenvector of listening matrix to get the social influence matrix 
-#import scipy.sparse.linalg
+
 from scipy import sparse as sp
-
-
 
 # W needs to be 
 eigen2019, ss_dstn2019 = sp.linalg.eigs(W.T, 
@@ -320,7 +294,7 @@ eigen2016, ss_dstn2016 = sp.linalg.eigs(W16.T,
 sW2016 = ss_dstn2016[:,0].real/np.sum(ss_dstn2016[:,0]).real
 
 
-# +
+# + code_folding=[0, 3, 10]
 ## plot the steady state belief distribution 
 
 fig,ax = plt.subplots(figsize =(8,6))
@@ -340,33 +314,9 @@ plt.legend(loc = 1,
            fontsize = legendsize)
 plt.title('steady state distribution of beliefs in 2016 and 2019')
 fig.savefig(('../graph/model/dist_s_compare.jpg'))
+
+
 # -
-
-"""
-## plot the social influence matrix 2019
-
-fig,ax = plt.subplots(figsize =(10,8))
-ax = sns.heatmap(np.log(sW2019),
-                 xticklabels=False, 
-                 yticklabels=False,
-                )
-#plt.title('social influence matrix (in log)')
-fig.savefig(('../graph/model/heatmap_s19.jpg'))
-"""
-
-"""
-## plot the social influence matrix 2016
-
-fig,ax = plt.subplots(figsize =(10,8))
-ax = sns.heatmap(np.log(sW2016),
-                 xticklabels=False, 
-                 yticklabels=False,
-                )
-#plt.title('social influence matrix (in log)')
-fig.savefig(('../graph/model/heatmap_s16.jpg'))
-
-"""
-
 
 # ### The social learning and belief distribution/dynamics 
 #
@@ -538,18 +488,20 @@ for t in range(T-1):
                                                  k_sim,
                                                  λ_sim)
 
-# + code_folding=[0]
+# + code_folding=[]
 ## compare average beliefs and true state 
 
 plt.plot(np.mean(psi_beliefs_sim,axis=0),label=r'$\tilde \psi_{t}$')
 plt.plot(psi_sim,label=r'$\psi_t$')
 plt.legend(loc=1)
+plt.title('Average belief and the true realizations')
 
-# + code_folding=[0]
+# + code_folding=[]
 ## belief dispersion 
 
 plt.plot(np.std(psi_beliefs_sim,axis=0),label=r'$Var(\tilde \psi_{i,t})$')
 plt.legend(loc=1)
+plt.title('Belief dispersion')
 # -
 
 # ## A few comparative statistics
@@ -576,7 +528,7 @@ W_sim = W    ## listening matrix
 
 # ### 1. Different degrees of nosiness of private signals/idiosyncratic volatility 
 
-# + code_folding=[20, 38, 41]
+# + code_folding=[0, 19, 20, 38, 41]
 ## some fixed parameters 
 
 ## process parameters 
@@ -652,7 +604,7 @@ fig.suptitle('Belief and Noisness of Private Signals')
 
 # ### 2. Different degrees of social weight 
 
-# + code_folding=[20, 37, 63]
+# + code_folding=[0, 20, 37, 63]
 ## some fixed parameters 
 
 ## process parameters 
@@ -728,7 +680,7 @@ for pltid,plt_ls in enumerate(to_plt):
 fig.suptitle('Belief and Degree of Social Influence') 
 # -
 
-# ### 3. Different weight to the private prior
+# ### 3. Different weights to the private prior
 
 # + code_folding=[20, 37, 39, 66]
 ## some fixed parameters 
@@ -884,9 +836,9 @@ for pltid,plt_ls in enumerate(to_plt):
 fig.suptitle('Belief and Size of Aggregate Volatility') 
 # -
 
-# ### 5. Different degree of dispersion in initial priors 
+# ### 5. Different degrees of dispersion in initial priors 
 
-# +
+# + code_folding=[0]
 ## some fixed parameters 
 
 ## process parameters 
@@ -960,6 +912,3 @@ for pltid,plt_ls in enumerate(to_plt):
         axes[pltid].legend(loc=1)
         
 fig.suptitle('Belief and Initial Disagreement') 
-# -
-
-# ## Dynamics after a shock
